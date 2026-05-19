@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Removed direct dependency on `webview_flutter_android`; native scrollbars are
+  now disabled via the cross-platform `WebViewController.setHorizontalScrollBarEnabled`
+  / `setVerticalScrollBarEnabled` API (guarded by `supportsSetScrollBarsEnabled`).
+
 ## 1.0.0
 
 - Initial release as `loymax_personal_offers` package.

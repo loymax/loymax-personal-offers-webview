@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import 'loymax_offer_event.dart';
 import 'loymax_offers_config.dart';
@@ -264,15 +262,16 @@ class _LoymaxOffersWebViewState extends State<LoymaxOffersWebView> {
       )
       ..loadRequest(Uri.parse(widget.url));
 
-    if (Platform.isAndroid) {
-      final Object platform = controller.platform;
-      if (platform is AndroidWebViewController) {
-        platform.setHorizontalScrollBarEnabled(false);
-        platform.setVerticalScrollBarEnabled(false);
-      }
-    }
+    _disableNativeScrollbars(controller);
 
     return controller;
+  }
+
+  Future<void> _disableNativeScrollbars(WebViewController controller) async {
+    if (await controller.supportsSetScrollBarsEnabled()) {
+      await controller.setHorizontalScrollBarEnabled(false);
+      await controller.setVerticalScrollBarEnabled(false);
+    }
   }
 
   void _setPhase(LoymaxOffersPhase phase) {
