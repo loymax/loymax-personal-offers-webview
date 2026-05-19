@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- Removed stale root `ios/` directory (leftover from the original app
+  scaffold). Only generated/ephemeral Xcode artifacts lived there and were
+  shipped in the published archive by mistake.
+
 ## 1.0.1
 
 - Removed direct dependency on `webview_flutter_android`; native scrollbars are
