@@ -159,6 +159,8 @@ class _HomePageState extends State<HomePage> {
         _openFullScreen(context);
       case LoymaxActivateTap(offer: final LoymaxOffer offer):
         _showActivated(context, offer);
+      case LoymaxNoContent():
+        debugPrint('Loymax: no offers available for this user');
       case LoymaxOtherEvent(name: final String name):
         debugPrint('Unhandled Loymax event: $name');
     }

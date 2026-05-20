@@ -16,6 +16,12 @@ typedef LoymaxLoadingBuilder = Widget Function(BuildContext context);
 typedef LoymaxErrorBuilder =
     Widget Function(BuildContext context, VoidCallback retry);
 
+/// Builder for the "no offers available" state.
+///
+/// Invoked when the WebView reports a `no_content` event. If omitted, the
+/// WebView is left visible (Loymax's own empty UI is shown).
+typedef LoymaxEmptyBuilder = Widget Function(BuildContext context);
+
 /// Builder for the pull-to-refresh indicator. [progress] is the fraction of
 /// the trigger threshold (`0..1`). When `progress >= 1` the user has dragged
 /// past the trigger; releasing the gesture invokes `reload()`.
@@ -81,6 +87,7 @@ class LoymaxOffersWebView extends StatefulWidget {
     this.backgroundColor,
     this.loadingBuilder,
     this.errorBuilder,
+    this.emptyBuilder,
     this.onPhaseChange,
     this.readyHeight,
     this.controller,
@@ -114,6 +121,11 @@ class LoymaxOffersWebView extends StatefulWidget {
   final LoymaxLoadingBuilder? loadingBuilder;
   final LoymaxErrorBuilder? errorBuilder;
 
+  /// Renders when the WebView reports a `no_content` event (the page loaded
+  /// but no offers are available for this user). If `null`, the WebView is
+  /// kept visible — Loymax's own empty state is shown.
+  final LoymaxEmptyBuilder? emptyBuilder;
+
   /// External controller for imperative `reload()` and phase subscription.
   final LoymaxOffersController? controller;
 
@@ -140,8 +152,10 @@ class LoymaxOffersWebView extends StatefulWidget {
 /// - [loading] — the page has not rendered yet (including retries after an
 ///   error);
 /// - [ready] — `onPageFinished` fired and the content is visible;
-/// - [error] — fatal main-frame load failure or 4xx/5xx HTTP response.
-enum LoymaxOffersPhase { loading, ready, error }
+/// - [error] — fatal main-frame load failure or 4xx/5xx HTTP response;
+/// - [empty] — the page reported a `no_content` event (loaded successfully
+///   but has no offers to show). Resets back to [loading] on `reload()`.
+enum LoymaxOffersPhase { loading, ready, error, empty }
 
 class _LoymaxOffersWebViewState extends State<LoymaxOffersWebView> {
   late final WebViewController _controller;
@@ -200,9 +214,13 @@ class _LoymaxOffersWebViewState extends State<LoymaxOffersWebView> {
           final LoymaxOfferEvent? event = LoymaxOfferEvent.tryParse(
             message.message,
           );
-          if (event != null) {
-            widget.onEvent(event);
+          if (event == null) {
+            return;
           }
+          if (event is LoymaxNoContent) {
+            _setPhase(LoymaxOffersPhase.empty);
+          }
+          widget.onEvent(event);
         },
       )
       ..addJavaScriptChannel(
@@ -349,6 +367,25 @@ class _LoymaxOffersWebViewState extends State<LoymaxOffersWebView> {
     switch (_phase) {
       case LoymaxOffersPhase.ready:
         return _wrapWithPullIndicator(sizedWebView);
+      case LoymaxOffersPhase.empty:
+        // No builder → behave like `ready`, leave the WebView's own empty UI
+        // visible. With a builder, render it on top of a hidden WebView so
+        // `reload()` does not have to rebuild the platform view.
+        if (widget.emptyBuilder == null) {
+          return _wrapWithPullIndicator(sizedWebView);
+        }
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: <Widget>[
+            Visibility(
+              visible: false,
+              maintainState: true,
+              maintainAnimation: true,
+              child: sizedWebView,
+            ),
+            widget.emptyBuilder!.call(context),
+          ],
+        );
       case LoymaxOffersPhase.error:
         // The WebView is taken out of the tree — the page already failed,
         // and on retry `controller.loadRequest` starts over. Preserving the

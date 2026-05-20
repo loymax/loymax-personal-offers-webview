@@ -44,10 +44,12 @@ class LoymaxOffersView extends StatelessWidget {
     this.backgroundColor,
     this.loadingBuilder,
     this.errorBuilder,
+    this.emptyBuilder,
     this.keepAlive = false,
     this.controller,
     this.pullToRefreshEnabled = false,
     this.pullToRefreshIndicatorBuilder,
+    this.hideTitle = true,
   });
 
   final LoymaxOffersConfig config;
@@ -57,6 +59,11 @@ class LoymaxOffersView extends StatelessWidget {
   final Color? backgroundColor;
   final LoymaxLoadingBuilder? loadingBuilder;
   final LoymaxErrorBuilder? errorBuilder;
+
+  /// Renders when the page reports `no_content` (loaded successfully but no
+  /// offers are available for this user). If `null`, the WebView is kept
+  /// visible — Loymax's own empty state is shown.
+  final LoymaxEmptyBuilder? emptyBuilder;
 
   /// If `true`, the widget is kept in the tree when it scrolls out of a lazy
   /// parent's viewport (`TabBarView`, `PageView`, etc.). Defaults to `false`.
@@ -74,6 +81,11 @@ class LoymaxOffersView extends StatelessWidget {
   /// used. See the docs on [LoymaxPullToRefreshIndicatorBuilder].
   final LoymaxPullToRefreshIndicatorBuilder? pullToRefreshIndicatorBuilder;
 
+  /// Append the `no-title` flag to the URL so the Loymax page does not
+  /// render its built-in title. Defaults to `true` — the host usually wraps
+  /// this widget in a `Scaffold` with its own `AppBar`.
+  final bool hideTitle;
+
   @override
   Widget build(BuildContext context) {
     final Widget view = LoymaxOffersWebView(
@@ -81,12 +93,14 @@ class LoymaxOffersView extends StatelessWidget {
         config: config,
         partner: partner,
         personUid: personUid,
+        hideTitle: hideTitle,
       ),
       onEvent: onEvent,
       config: config,
       backgroundColor: backgroundColor,
       loadingBuilder: loadingBuilder,
       errorBuilder: errorBuilder,
+      emptyBuilder: emptyBuilder,
       controller: controller,
       pullToRefreshEnabled: pullToRefreshEnabled,
       pullToRefreshIndicatorBuilder: pullToRefreshIndicatorBuilder,

@@ -56,6 +56,8 @@ sealed class LoymaxOfferEvent {
                 <String, dynamic>{},
           ),
         );
+      case 'no_content':
+        return LoymaxNoContent(source: source);
     }
 
     if (rawName is! String || rawName.isEmpty) {
@@ -87,6 +89,17 @@ class LoymaxActivateTap extends LoymaxOfferEvent {
   const LoymaxActivateTap({required super.source, required this.offer});
 
   final LoymaxOffer offer;
+}
+
+/// The page has rendered with no offers available for the current user.
+///
+/// Fired from both the carousel (`source: carousel`) and the full list
+/// (`source: list`). Independently of this event, the package switches its
+/// internal phase to [LoymaxOffersPhase.empty] — see `emptyBuilder` on
+/// [LoymaxOffersCarousel] / [LoymaxOffersView] for replacing or collapsing
+/// the block in this state.
+class LoymaxNoContent extends LoymaxOfferEvent {
+  const LoymaxNoContent({required super.source});
 }
 
 /// An event whose `event` name is not recognised by this version of the

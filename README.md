@@ -15,18 +15,20 @@ strongly-typed Dart objects.
   to live inside a `ListView` on the home screen.
 - `LoymaxOffersView` — full-screen list, intended to be wrapped in a
   `Scaffold` by the host app.
-- Three-phase state machine (`loading` / `ready` / `error`) with customisable
-  `loadingBuilder` and `errorBuilder` — return `SizedBox.shrink()` to fully
-  collapse the block in any phase.
+- Four-phase state machine (`loading` / `ready` / `error` / `empty`) with
+  customisable `loadingBuilder`, `errorBuilder` and `emptyBuilder` — return
+  `SizedBox.shrink()` to fully collapse the block in any phase.
 - Optional `AnimatedSize` transitions between phases (tunable duration /
   curve, can be turned off).
 - `LoymaxOffersController` for imperative `reload()` and phase observation.
 - Cross-platform pull-to-refresh implemented through a JS injection (no
   platform-specific glue required).
 - Strongly-typed events: `LoymaxViewAllTap`, `LoymaxCardTap`,
-  `LoymaxActivateTap`.
+  `LoymaxActivateTap`, `LoymaxNoContent`.
 - `keepAlive` flag for embedding inside lazy parents (`ListView`,
   `TabBarView`, `PageView`).
+- `hideTitle` toggle on both widgets — keep the Loymax page's built-in
+  title or drop it (default).
 
 ## Quick start
 
@@ -119,16 +121,22 @@ const LoymaxOffersConfig kLoymaxConfig = LoymaxOffersConfig(
 ```
 
 The full URL is built as `{baseUrl}/{partner}/?personUid=…&view=row&no-title`.
+Pass `hideTitle: false` on the widget to keep the page's built-in title
+(the `no-title` flag is then dropped from the query).
 
 ## Phases and builders
 
-`LoymaxOffersPhase` has three values: `loading`, `ready`, `error`. Both
-`LoymaxOffersCarousel` and `LoymaxOffersView` accept:
+`LoymaxOffersPhase` has four values: `loading`, `ready`, `error`, `empty`.
+Both `LoymaxOffersCarousel` and `LoymaxOffersView` accept:
 
 - `loadingBuilder: (context) => Widget` — placeholder during loading;
   return `SizedBox.shrink()` to hide the block until the WebView is ready.
 - `errorBuilder: (context, retry) => Widget` — error view; call `retry()` to
   reload.
+- `emptyBuilder: (context) => Widget` — shown when the page reports
+  `no_content` (loaded but no offers for this user). If `null`, the WebView
+  is left visible with Loymax's own empty UI; return `SizedBox.shrink()` to
+  collapse the block.
 
 The carousel additionally wraps the result in `AnimatedSize` so that size
 changes between phases are animated. Pass `resizeAnimationDuration: null`
@@ -147,6 +155,7 @@ The WebView posts JSON messages through the `LoymaxBridge` JS channel.
 | `LoymaxViewAllTap` | User tapped "view all" inside the carousel. |
 | `LoymaxCardTap` | User tapped a card (carousel or list). |
 | `LoymaxActivateTap` | User activated an offer. Contains `LoymaxOffer`. |
+| `LoymaxNoContent` | Page rendered with no offers available. Independently flips the widget into `LoymaxOffersPhase.empty`. |
 | `LoymaxOtherEvent` | Forward-compat wrapper for any event name the package does not recognise. Carries the raw `name` and the full decoded `payload`. |
 
 `event.source` tells you whether the event came from the `carousel` or the
@@ -229,8 +238,8 @@ flutter run
 The example contains two screens:
 
 - **Home (carousel)** — a typical home screen integration.
-- **Builder gallery** — six side-by-side variations of `loadingBuilder` /
-  `errorBuilder` and the resize animation knob.
+- **Builder gallery** — eight side-by-side variations of `loadingBuilder` /
+  `errorBuilder` / `emptyBuilder` and the resize animation knob.
 
 ## License
 

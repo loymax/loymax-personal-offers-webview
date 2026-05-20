@@ -42,11 +42,13 @@ class LoymaxOffersCarousel extends StatelessWidget {
     this.backgroundColor,
     this.loadingBuilder,
     this.errorBuilder,
+    this.emptyBuilder,
     this.resizeAnimationDuration = const Duration(milliseconds: 200),
     this.resizeAnimationCurve = Curves.easeInOut,
     this.keepAlive = false,
     this.controller,
     this.onPhaseChange,
+    this.hideTitle = true,
   }) : assert(
          resizeAnimationDuration == null ||
              resizeAnimationDuration >= Duration.zero,
@@ -61,6 +63,13 @@ class LoymaxOffersCarousel extends StatelessWidget {
   final Color? backgroundColor;
   final LoymaxLoadingBuilder? loadingBuilder;
   final LoymaxErrorBuilder? errorBuilder;
+
+  /// Renders when the page reports `no_content` (loaded successfully but no
+  /// offers are available for this user). If `null`, the WebView is kept
+  /// visible — Loymax's own empty state is shown. Return `SizedBox.shrink()`
+  /// to collapse the carousel completely; combined with [resizeAnimationDuration]
+  /// the transition is animated for free.
+  final LoymaxEmptyBuilder? emptyBuilder;
 
   /// Duration of the resize animation between phases.
   /// `null` skips the [AnimatedSize] wrapper and resizes instantly.
@@ -82,6 +91,11 @@ class LoymaxOffersCarousel extends StatelessWidget {
 
   final ValueChanged<LoymaxOffersPhase>? onPhaseChange;
 
+  /// Append the `no-title` flag to the URL so the Loymax page does not
+  /// render its built-in title. Defaults to `true` — the carousel block is
+  /// usually framed by the host app's own section header.
+  final bool hideTitle;
+
   @override
   Widget build(BuildContext context) {
     final Widget webView = LoymaxOffersWebView(
@@ -90,6 +104,7 @@ class LoymaxOffersCarousel extends StatelessWidget {
         partner: partner,
         personUid: personUid,
         asCarousel: true,
+        hideTitle: hideTitle,
       ),
       onEvent: onEvent,
       config: config,
@@ -97,6 +112,7 @@ class LoymaxOffersCarousel extends StatelessWidget {
       backgroundColor: backgroundColor,
       loadingBuilder: loadingBuilder,
       errorBuilder: errorBuilder,
+      emptyBuilder: emptyBuilder,
       onPhaseChange: onPhaseChange,
       readyHeight: height,
       controller: controller,

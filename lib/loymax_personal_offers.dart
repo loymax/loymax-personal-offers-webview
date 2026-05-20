@@ -12,6 +12,7 @@ export 'src/loymax_offers_controller.dart';
 export 'src/loymax_offers_screen.dart' show LoymaxOffersView;
 export 'src/loymax_offers_webview.dart'
     show
+        LoymaxEmptyBuilder,
         LoymaxErrorBuilder,
         LoymaxLoadingBuilder,
         LoymaxOffersPhase,

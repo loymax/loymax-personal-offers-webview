@@ -15,9 +15,9 @@ Flutter-виджеты для встраивания **персональных 
   размещение внутри `ListView` главного экрана.
 - `LoymaxOffersView` — полноэкранный список, оборачивайте в `Scaffold` на
   стороне приложения.
-- Машина состояний из трёх фаз (`loading` / `ready` / `error`) с кастомными
-  `loadingBuilder` и `errorBuilder` — вернув `SizedBox.shrink()`, можно
-  полностью скрыть блок в любой фазе.
+- Машина состояний из четырёх фаз (`loading` / `ready` / `error` /
+  `empty`) с кастомными `loadingBuilder`, `errorBuilder` и `emptyBuilder` —
+  вернув `SizedBox.shrink()`, можно полностью скрыть блок в любой фазе.
 - Опциональные `AnimatedSize`-переходы между фазами (длительность / кривая
   настраиваются, обёртку можно отключить).
 - `LoymaxOffersController` для императивного `reload()` и наблюдения за
@@ -25,9 +25,11 @@ Flutter-виджеты для встраивания **персональных 
 - Кроссплатформенный pull-to-refresh через JS-инъекцию (без платформенного
   кода).
 - Типизированные события: `LoymaxViewAllTap`, `LoymaxCardTap`,
-  `LoymaxActivateTap`.
+  `LoymaxActivateTap`, `LoymaxNoContent`.
 - Флаг `keepAlive` для встраивания в ленивых родителей (`ListView`,
   `TabBarView`, `PageView`).
+- Переключатель `hideTitle` на обоих виджетах — оставить или скрыть
+  встроенный заголовок страницы Loymax (по умолчанию скрыт).
 
 ## Быстрый старт
 
@@ -120,22 +122,28 @@ const LoymaxOffersConfig kLoymaxConfig = LoymaxOffersConfig(
 ```
 
 Полный URL собирается как `{baseUrl}/{partner}/?personUid=…&view=row&no-title`.
+Передайте `hideTitle: false` в виджет, если нужно оставить встроенный
+заголовок страницы (флаг `no-title` тогда из query убирается).
 
 ## Фазы и builder'ы
 
-`LoymaxOffersPhase` принимает значения `loading`, `ready`, `error`. И
-`LoymaxOffersCarousel`, и `LoymaxOffersView` принимают:
+`LoymaxOffersPhase` принимает значения `loading`, `ready`, `error`,
+`empty`. И `LoymaxOffersCarousel`, и `LoymaxOffersView` принимают:
 
 - `loadingBuilder: (context) => Widget` — плейсхолдер во время загрузки;
   верните `SizedBox.shrink()`, чтобы прятать блок до готовности WebView.
 - `errorBuilder: (context, retry) => Widget` — экран ошибки; вызов `retry()`
   перезагружает страницу.
+- `emptyBuilder: (context) => Widget` — показывается, когда страница
+  присылает `no_content` (загрузилась, но предложений для пользователя
+  нет). Если `null`, WebView остаётся видимым со своим пустым состоянием;
+  верните `SizedBox.shrink()`, чтобы схлопнуть блок.
 
 Карусель дополнительно оборачивает результат в `AnimatedSize`, чтобы смена
 размера между фазами анимировалась. `resizeAnimationDuration: null`
 отключает обёртку.
 
-Все шесть вариантов builder'ов вживую — в
+Все варианты builder'ов вживую — в
 [`example/lib/demo_gallery.dart`](example/lib/demo_gallery.dart).
 
 ## События
@@ -148,6 +156,7 @@ WebView шлёт JSON-сообщения через JS-канал `LoymaxBridge`
 | `LoymaxViewAllTap` | Тап по «смотреть все» в карусели. |
 | `LoymaxCardTap` | Тап по карточке (карусель или список). |
 | `LoymaxActivateTap` | Активация предложения. Содержит `LoymaxOffer`. |
+| `LoymaxNoContent` | Страница загрузилась, но предложений нет. Параллельно переводит виджет в `LoymaxOffersPhase.empty`. |
 | `LoymaxOtherEvent` | Forward-compat обёртка для неизвестных пакету событий. Содержит сырое `name` и полный декодированный `payload`. |
 
 `event.source` различает источник: `carousel` или `list`.
@@ -230,8 +239,8 @@ flutter run
 В примере два экрана:
 
 - **Home (carousel)** — типовая интеграция на главном экране.
-- **Builder gallery** — шесть вариантов `loadingBuilder` / `errorBuilder`
-  рядом + переключатель анимации смены размера.
+- **Builder gallery** — восемь вариантов `loadingBuilder` / `errorBuilder` /
+  `emptyBuilder` рядом + переключатель анимации смены размера.
 
 ## Лицензия
 

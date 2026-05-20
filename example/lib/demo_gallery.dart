@@ -100,6 +100,35 @@ class DemoGalleryPage extends StatelessWidget {
               onEvent: (LoymaxOfferEvent event) => _onEvent(context, event),
             ),
           ),
+          _Variant(
+            title: '7. Custom empty state',
+            hint:
+                'emptyBuilder renders a host-styled card when the page reports '
+                'no_content. Visible only if the backend returns no offers for '
+                'this user.',
+            child: LoymaxOffersCarousel(
+              keepAlive: true,
+              config: kLoymaxConfig,
+              partner: kPartner,
+              personUid: kPersonUid,
+              emptyBuilder: (_) => const _EmptyOffersCard(),
+              onEvent: (LoymaxOfferEvent event) => _onEvent(context, event),
+            ),
+          ),
+          _Variant(
+            title: '8. Hidden when empty',
+            hint:
+                'emptyBuilder returns SizedBox.shrink() — the carousel '
+                'collapses on no_content. AnimatedSize smoothly hides the slot.',
+            child: LoymaxOffersCarousel(
+              keepAlive: true,
+              config: kLoymaxConfig,
+              partner: kPartner,
+              personUid: kPersonUid,
+              emptyBuilder: (_) => const SizedBox.shrink(),
+              onEvent: (LoymaxOfferEvent event) => _onEvent(context, event),
+            ),
+          ),
           const SizedBox(height: 400),
         ],
       ),
@@ -119,6 +148,10 @@ class DemoGalleryPage extends StatelessWidget {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Activated: ${offer.name}')));
+      case LoymaxNoContent(source: final LoymaxOfferSource source):
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('No content (${source.name})')));
       case LoymaxOtherEvent(name: final String name):
         ScaffoldMessenger.of(
           context,
@@ -283,6 +316,56 @@ class _SkeletonLine extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(6),
+      ),
+    );
+  }
+}
+
+class _EmptyOffersCard extends StatelessWidget {
+  const _EmptyOffersCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      height: 140,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(
+            Icons.local_offer_outlined,
+            size: 36,
+            color: scheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'No personal offers yet',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Come back later — new deals appear regularly.',
+                  style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,6 +1,6 @@
 name: loymax_personal_offers
 description: Flutter widgets for embedding Loymax personal offers via a WebView (carousel and full-screen list).
-version: 1.0.2
+version: 1.1.0
 
 repository: https://github.com/loymax/loymax-personal-offers-webview
 issue_tracker: https://github.com/loymax/loymax-personal-offers-webview/issues
