@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.1
+
+- Fixed: calling `reload()` while the WebView was still in the `loading`
+  phase briefly flipped the widget to `error` (the platform emits a
+  cancellation error for the superseded navigation), tearing the WebView
+  out of the tree until the new `onPageStarted` arrived. Main-frame
+  errors that fire between `loadRequest` and the next `onPageStarted`
+  are now suppressed.
+- Fixed: retrying from the `error` phase did not always reload the page
+  (notably on Android when `errorBuilder` returned `SizedBox.shrink()`).
+  The WebView is now kept in the tree via `Visibility(maintainState: true)`
+  in `error`, the same way it already was in `loading` / `empty`, so the
+  underlying native WebView is not disposed and `loadRequest` always
+  lands on a live platform view.
+
 ## 1.1.0
 
 - Added `LoymaxNoContent` event (`event: 'no_content'`) — fired by the

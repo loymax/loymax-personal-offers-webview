@@ -66,11 +66,12 @@ String buildLoymaxOffersUrl({
 /// Drives three phases: `loading` (the page has not rendered yet), `error`
 /// (fatal main-frame load failure) and `ready` (content is visible).
 ///
-/// During `loading` / `error` the appropriate builder is rendered while the
-/// WebView itself is kept in the tree via `Visibility(maintainState: true)`,
-/// so the controller is not recreated and loading does not restart. The size
-/// of the outer container in those phases is determined by the builder — if
-/// the builder returns `SizedBox.shrink()`, the widget collapses to 0×0.
+/// During `loading` / `error` / `empty` the appropriate builder is rendered
+/// while the WebView itself is kept in the tree via
+/// `Visibility(maintainState: true)`, so the platform view is not disposed
+/// and a retry via `loadRequest` always lands on a live WebView. The size of
+/// the outer container in those phases is determined by the builder — if the
+/// builder returns `SizedBox.shrink()`, the widget collapses to 0×0.
 /// Wrap [LoymaxOffersWebView] in an external `AnimatedSize` to animate
 /// phase-driven size changes.
 ///
@@ -167,6 +168,14 @@ class _LoymaxOffersWebViewState extends State<LoymaxOffersWebView> {
   /// 404 page body and considers the navigation successfully finished.
   bool _hadFatalError = false;
 
+  /// Set to `true` between [_reload] / initial `loadRequest` and the next
+  /// `onPageStarted`. Calling `loadRequest` while a navigation is in flight
+  /// cancels the previous one and the platform emits a main-frame error
+  /// (iOS: `NSURLErrorCancelled`, Android: `net::ERR_ABORTED`) for it — that
+  /// error must not flip the phase to `error`, otherwise a reload triggered
+  /// during `loading` briefly tears the WebView out of the tree.
+  bool _awaitingPageStart = true;
+
   /// Pull-to-refresh progress as a fraction of the trigger threshold
   /// (`0..1`). Grows while the user drags the page down; resets on release.
   double _pullProgress = 0;
@@ -198,6 +207,7 @@ class _LoymaxOffersWebViewState extends State<LoymaxOffersWebView> {
   /// (`_reload` from errorBuilder).
   void _reload() {
     _hadFatalError = false;
+    _awaitingPageStart = true;
     _setPhase(LoymaxOffersPhase.loading);
     _controller.loadRequest(Uri.parse(widget.url));
   }
@@ -233,6 +243,7 @@ class _LoymaxOffersWebViewState extends State<LoymaxOffersWebView> {
         NavigationDelegate(
           onPageStarted: (String _) {
             _hadFatalError = false;
+            _awaitingPageStart = false;
             // Early injection — the document is not rendered yet but the JS
             // engine already accepts evaluate. If the document is missing,
             // the script bails out via its own guard.
@@ -258,6 +269,13 @@ class _LoymaxOffersWebViewState extends State<LoymaxOffersWebView> {
             if (error.isForMainFrame == false) {
               return;
             }
+            // The previous navigation was cancelled by our own loadRequest —
+            // the new one has not started yet. Suppress, otherwise the phase
+            // briefly flips to `error` and the WebView is torn out of the
+            // tree until `onPageStarted` of the new load arrives.
+            if (_awaitingPageStart) {
+              return;
+            }
             debugPrint(
               'Loymax WebView error: ${error.errorCode} ${error.description}',
             );
@@ -270,6 +288,9 @@ class _LoymaxOffersWebViewState extends State<LoymaxOffersWebView> {
               return;
             }
             if (!_isMainFrameRequest(error.request?.uri)) {
+              return;
+            }
+            if (_awaitingPageStart) {
               return;
             }
             debugPrint('Loymax WebView HTTP error: $status');
@@ -387,18 +408,29 @@ class _LoymaxOffersWebViewState extends State<LoymaxOffersWebView> {
           ],
         );
       case LoymaxOffersPhase.error:
-        // The WebView is taken out of the tree — the page already failed,
-        // and on retry `controller.loadRequest` starts over. Preserving the
-        // platform view across `ListView`s and navigation is the
-        // integrator's job (KeepAlive).
-        return widget.errorBuilder?.call(context, _reload) ??
-            SizedBox(
-              height: widget.readyHeight,
-              child: _DefaultLoymaxError(
-                onRetry: _reload,
-                backgroundColor: widget.backgroundColor,
-              ),
-            );
+        // Keep the WebView in the tree (hidden) so that a retry via
+        // `loadRequest` always lands on a live platform view. Removing it
+        // disposes the underlying native WebView on Android and the next
+        // `loadRequest` is lost.
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: <Widget>[
+            Visibility(
+              visible: false,
+              maintainState: true,
+              maintainAnimation: true,
+              child: sizedWebView,
+            ),
+            widget.errorBuilder?.call(context, _reload) ??
+                SizedBox(
+                  height: widget.readyHeight,
+                  child: _DefaultLoymaxError(
+                    onRetry: _reload,
+                    backgroundColor: widget.backgroundColor,
+                  ),
+                ),
+          ],
+        );
       case LoymaxOffersPhase.loading:
         // Keep the WebView in the tree (hidden, taking no space) so that
         // loading continues behind the placeholder.
